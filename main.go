@@ -116,7 +116,7 @@ func game(reader *bufio.Reader, balance int) int {
 	winColor := colorOf(winNum)
 
 	spinAnimation(winNum)
-	fmt.Printf("\n🎡 Result: %s\n",
+	fmt.Printf("\nResult: %s\n",
 		colorText(fmt.Sprintf("%d (%s)", winNum, winColor), winColor))
 
 	// Settle bets
@@ -139,10 +139,9 @@ func game(reader *bufio.Reader, balance int) int {
 	balance += totalWinnings
 
 	net := totalWinnings - totalStake
-	grossReturn := totalWinnings + totalStake // what came back to you this round
 
-	fmt.Printf("\nSummary: Staked %s | Returned %s | Net %+s | New balance %s\n\n",
-		money(totalStake), money(grossReturn), money(net), money(balance))
+	fmt.Printf("\nSummary: Staked %s | Net %+s | New balance %s\n\n",
+		money(totalStake), money(net), money(balance))
 
 	return balance
 }
@@ -418,9 +417,10 @@ func spinAnimation(finalNum int) {
 		out := fmt.Sprintf("[%2d %5s]", n, c)
 		if s == steps {
 			out = colorText(out, c) // color final tick
-		} else {
+		} else if useColor {
 			out = ansiDim + out + ansiReset
 		}
+
 		fmt.Print(out)
 		if s != steps {
 			fmt.Print(" → ")
