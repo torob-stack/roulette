@@ -16,10 +16,10 @@ import (
 var (
 	flagSeed    = flag.Int64("seed", 0, "set RNG seed (0 = time-based)")
 	flagFast    = flag.Bool("fast", false, "faster spin animation")
-	flagNoColor = flag.Bool("no-color", false, "disable ANSI colors")
+	flagNocolour = flag.Bool("no-colour", false, "disable ANSI colours")
 )
 
-var useColor = true
+var usecolour = true
 var spinSleep = 120 * time.Millisecond
 
 func main() {
@@ -33,8 +33,8 @@ func main() {
 	if *flagFast {
 		spinSleep = 10 * time.Millisecond
 	}
-	if *flagNoColor || os.Getenv("NO_COLOR") != "" {
-		useColor = false
+	if *flagNocolour || os.Getenv("NO_colour") != "" {
+		usecolour = false
 	}
 
 	reader := bufio.NewReader(os.Stdin)
@@ -69,15 +69,15 @@ func game(reader *bufio.Reader, balance int) int {
 	// Collect one or more bets
 	for {
 		betType := getOneOf(reader,
-			"Choose bet type (number/color/odd_even/low_high/dozen/column): ",
-			[]string{"number", "color", "odd_even", "low_high", "dozen", "column"},
+			"Choose bet type (number/colour/odd_even/low_high/dozen/column): ",
+			[]string{"number", "colour", "odd_even", "low_high", "dozen", "column"},
 		)
 
 		switch betType {
 		case "number":
 			bets = append(bets, CollectNumber(reader, remaining))
-		case "color":
-			bets = append(bets, CollectColor(reader, remaining))
+		case "colour":
+			bets = append(bets, Collectcolour(reader, remaining))
 		case "odd_even":
 			bets = append(bets, CollectOddEven(reader, remaining))
 		case "low_high":
@@ -113,11 +113,11 @@ func game(reader *bufio.Reader, balance int) int {
 
 	// Spin + derive properties
 	winNum := roulette()
-	winColor := colorOf(winNum)
+	wincolour := colourOf(winNum)
 
 	spinAnimation(winNum)
 	fmt.Printf("\nResult: %s\n",
-		colorText(fmt.Sprintf("%d (%s)", winNum, winColor), winColor))
+		colourText(fmt.Sprintf("%d (%s)", winNum, wincolour), wincolour))
 
 	// Settle bets
 	totalWinnings := 0
@@ -127,8 +127,8 @@ func game(reader *bufio.Reader, balance int) int {
 			fmt.Printf("Skipping unknown bet type: %s\n", b.Type)
 			continue
 		}
-		// Net multiplier: 35 for number, 1 for color, etc.
-		mult := eval(b, winNum, winColor)
+		// Net multiplier: 35 for number, 1 for colour, etc.
+		mult := eval(b, winNum, wincolour)
 		won := b.Stake * mult
 		totalWinnings += won
 		fmt.Printf("Bet: %-10s %-8s Stake: %s  ->  Net x%d  = %s\n",
@@ -148,10 +148,10 @@ func game(reader *bufio.Reader, balance int) int {
 
 // ---------- Collectors ----------
 
-func CollectColor(reader *bufio.Reader, remaining int) Bet {
-	color := getOneOf(reader, "Pick a color (red/black): ", []string{"red", "black"})
+func Collectcolour(reader *bufio.Reader, remaining int) Bet {
+	colour := getOneOf(reader, "Pick a colour (red/black): ", []string{"red", "black"})
 	stake := getStakeWithinBalance(reader, "Stake £", remaining)
-	return Bet{Type: "color", Choice: color, Stake: stake}
+	return Bet{Type: "colour", Choice: colour, Stake: stake}
 }
 
 func CollectNumber(reader *bufio.Reader, remaining int) Bet {
@@ -219,23 +219,23 @@ func readLine(r *bufio.Reader) string {
 // ---------- Model & evaluation ----------
 
 type Bet struct {
-	Type   string // number | color | odd_even | low_high | dozen | column
+	Type   string // number | colour | odd_even | low_high | dozen | column
 	Choice string // e.g., "17", "red", "odd", "1st", "col2"
 	Stake  int    // pennies
 }
 
-type Evaluator func(b Bet, winNum int, winColor string) int
+type Evaluator func(b Bet, winNum int, wincolour string) int
 
 var evaluators = map[string]Evaluator{
 	"number":   EvaluateNumber,
-	"color":    EvaluateColor,
+	"colour":    Evaluatecolour,
 	"odd_even": EvaluateOddEven,
 	"low_high": EvaluateLowHigh,
 	"dozen":    EvaluateDozen,
 	"column":   EvaluateColumn,
 }
 
-func colorOf(n int) string {
+func colourOf(n int) string {
 	if n == 0 {
 		return "green"
 	}
@@ -256,9 +256,9 @@ func EvaluateNumber(b Bet, winNum int, _ string) int {
 	return 0
 }
 
-// Return net multiplier (1 for a correct color, else 0)
-func EvaluateColor(b Bet, _ int, winColor string) int {
-	if strings.ToLower(winColor) == strings.ToLower(b.Choice) {
+// Return net multiplier (1 for a correct colour, else 0)
+func Evaluatecolour(b Bet, _ int, wincolour string) int {
+	if strings.ToLower(wincolour) == strings.ToLower(b.Choice) {
 		return 1
 	}
 	return 0
@@ -413,11 +413,11 @@ func spinAnimation(finalNum int) {
 	fmt.Println("Spinning the wheel...")
 	for s := 0; s <= steps; s++ {
 		n := wheel[(start+s)%len(wheel)]
-		c := colorOf(n)
+		c := colourOf(n)
 		out := fmt.Sprintf("[%2d %5s]", n, c)
 		if s == steps {
-			out = colorText(out, c) // color final tick
-		} else if useColor {
+			out = colourText(out, c) // colour final tick
+		} else if usecolour {
 			out = ansiDim + out + ansiReset
 		}
 
@@ -441,8 +441,8 @@ const (
 	ansiDim   = "\033[2m"
 )
 
-func colorText(s, c string) string {
-	if !useColor {
+func colourText(s, c string) string {
+	if !usecolour {
 		return s
 	}
 	switch strings.ToLower(c) {
@@ -498,7 +498,7 @@ func printAsciiTable(_ int) {
 
 	// fixed-width numeric cell then colourize (keeps alignment)
 	cell := func(n int) string {
-		return colorText(fmt.Sprintf("%2d", n), colorOf(n)) // " 1", "12", "36"
+		return colourText(fmt.Sprintf("%2d", n), colourOf(n)) // " 1", "12", "36"
 	}
 
 	fmt.Println()
@@ -507,7 +507,7 @@ func printAsciiTable(_ int) {
 
 	// zero box, aligned to the grid
 	fmt.Println(left1 + "  +----+")
-	fmt.Println(left1 + "  | " + colorText(fmt.Sprintf("%2d", 0), "green") + " |")
+	fmt.Println(left1 + "  | " + colourText(fmt.Sprintf("%2d", 0), "green") + " |")
 	fmt.Println(left1 + "  +----+")
 
 	// build one sample row to auto-size the border
