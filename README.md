@@ -1,7 +1,7 @@
 # Roulette CLI Game (Go)
 
 A fully interactive **command-line roulette game** built in Go.  
-This project simulates a European roulette wheel with multiple bet types, a visual table display, color-coded results, and balance tracking — all in a simple, text-based interface.
+This project simulates a European roulette wheel with multiple bet types, a visual table display, colour-coded results, and balance tracking — all in a simple, text-based interface.
 
 ---
 
@@ -14,9 +14,9 @@ This project simulates a European roulette wheel with multiple bet types, a visu
   - Low/High (1–18 / 19–36)
   - Dozens (1st, 2nd, 3rd)
   - Columns (Col1, Col2, Col3)
-- **Accurate European roulette colors & payouts**
+- **Accurate European roulette colours & payouts**
 - **Animated wheel spin** showing number sequence
-- **Color-coded results** in the terminal
+- **colour-coded results** in the terminal
 - **ASCII roulette table** for easy reference before betting
 - Tracks **player balance** and ends the game when funds run out
 - Supports **multiple bets in one round**
