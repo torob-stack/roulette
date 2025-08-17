@@ -14,8 +14,8 @@ import (
 )
 
 var (
-	flagSeed    = flag.Int64("seed", 0, "set RNG seed (0 = time-based)")
-	flagFast    = flag.Bool("fast", false, "faster spin animation")
+	flagSeed     = flag.Int64("seed", 0, "set RNG seed (0 = time-based)")
+	flagFast     = flag.Bool("fast", false, "faster spin animation")
 	flagNoColour = flag.Bool("no-colour", false, "disable ANSI colours")
 )
 
@@ -120,25 +120,25 @@ func game(reader *bufio.Reader, balance int) int {
 		colourText(fmt.Sprintf("%d (%s)", winNum, winColour), winColour))
 
 	// Settle bets
-	totalWinnings := 0
+	totalPayout := settleBets(bets, winNum, winColour)
+
+	// (Optional) verbose per-bet printout
 	for _, b := range bets {
-		eval, ok := evaluators[b.Type]
-		if !ok {
-			fmt.Printf("Skipping unknown bet type: %s\n", b.Type)
-			continue
+		eval := evaluators[b.Type]
+		netMult := eval(b, winNum, winColour)
+		payout := 0
+		if netMult > 0 {
+			payout = b.Stake * (netMult + 1)
 		}
-		// Net multiplier: 35 for number, 1 for colour, etc.
-		mult := eval(b, winNum, winColour)
-		won := b.Stake * mult
-		totalWinnings += won
-		fmt.Printf("Bet: %-10s %-8s Stake: %s  ->  Net x%d  = %s\n",
-			b.Type, b.Choice, money(b.Stake), mult, money(won))
+		fmt.Printf("Bet: %-10s %-8s Stake: %s  ->  Payout x%d (net x%d) = %s\n",
+			b.Type, b.Choice, money(b.Stake), netMult+1, netMult, money(payout))
 	}
 
 	// Update balance and show summary
-	balance += totalWinnings
+	balance += totalPayout
 
-	net := totalWinnings - totalStake
+	// True net profit/loss this round equals sum(stake * netMult) across winning bets.
+	net := totalPayout - totalStake
 
 	fmt.Printf("\nSummary: Staked %s | Net %+s | New balance %s\n\n",
 		money(totalStake), money(net), money(balance))
@@ -228,11 +228,28 @@ type Evaluator func(b Bet, winNum int, winColour string) int
 
 var evaluators = map[string]Evaluator{
 	"number":   EvaluateNumber,
-	"colour":    EvaluateColour,
+	"colour":   EvaluateColour,
 	"odd_even": EvaluateOddEven,
 	"low_high": EvaluateLowHigh,
 	"dozen":    EvaluateDozen,
 	"column":   EvaluateColumn,
+}
+
+// settleBets computes total payout for a set of bets given the winning number/colour.
+// evaluators return NET multipliers (e.g., 35 for number, 2 for dozen/column, 1 for even-money).
+// On a win, payout = stake * (net + 1). On a loss, payout = 0.
+func settleBets(bets []Bet, winNum int, winColour string) (totalPayout int) {
+	for _, b := range bets {
+		eval, ok := evaluators[b.Type]
+		if !ok {
+			continue
+		}
+		netMult := eval(b, winNum, winColour)
+		if netMult > 0 {
+			totalPayout += b.Stake * (netMult + 1)
+		}
+	}
+	return
 }
 
 func colourOf(n int) string {
@@ -247,7 +264,7 @@ func colourOf(n int) string {
 	return "black"
 }
 
-// Return net multiplier (35 for a correct single number, else 0)
+// Return NET multiplier (35 for a correct single number, else 0)
 func EvaluateNumber(b Bet, winNum int, _ string) int {
 	num, _ := strconv.Atoi(b.Choice)
 	if winNum == num {
@@ -256,7 +273,7 @@ func EvaluateNumber(b Bet, winNum int, _ string) int {
 	return 0
 }
 
-// Return net multiplier (1 for a correct colour, else 0)
+// Return NET multiplier (1 for a correct colour, else 0)
 func EvaluateColour(b Bet, _ int, winColour string) int {
 	if strings.ToLower(winColour) == strings.ToLower(b.Choice) {
 		return 1
@@ -488,7 +505,7 @@ func printBetsTable(bets []Bet) {
 	centerPrintf(width, "Total stake: %s\n\n", money(total))
 }
 
-// Pre-round left-aligned roulette table (like your mockup).
+// Pre-round left-aligned roulette table.
 // Shows rows 1..36 (1,2,3 at the top), no highlight post-spin.
 func printAsciiTable(_ int) {
 	left := " " // overall left margin (tweak if you want)
@@ -496,7 +513,7 @@ func printAsciiTable(_ int) {
 	left1 := "      "
 	sep := "     " // spacing between columns
 
-	// fixed-width numeric cell then colourize (keeps alignment)
+	// fixed-width numeric cell then colourise (keeps alignment)
 	cell := func(n int) string {
 		return colourText(fmt.Sprintf("%2d", n), colourOf(n)) // " 1", "12", "36"
 	}

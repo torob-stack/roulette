@@ -2,7 +2,7 @@ package main
 
 import "testing"
 
-func TestColorOf(t *testing.T) {
+func TestColourOf(t *testing.T) {
 	tests := []struct {
 		n    int
 		want string
@@ -13,8 +13,8 @@ func TestColorOf(t *testing.T) {
 		{36, "red"},
 	}
 	for _, tt := range tests {
-		if got := colorOf(tt.n); got != tt.want {
-			t.Errorf("colorOf(%d) = %q, want %q", tt.n, got, tt.want)
+		if got := colourOf(tt.n); got != tt.want {
+			t.Errorf("colourOf(%d) = %q, want %q", tt.n, got, tt.want)
 		}
 	}
 }
@@ -37,7 +37,7 @@ func TestEvaluateNumber(t *testing.T) {
 	}
 }
 
-func TestEvaluateColor(t *testing.T) {
+func TestEvaluateColour(t *testing.T) {
 	tests := []struct {
 		choice string
 		winNum int
@@ -50,9 +50,9 @@ func TestEvaluateColor(t *testing.T) {
 		{"black", 0, "green", 0}, // 0 is green, should lose for red/black
 	}
 	for _, tt := range tests {
-		got := EvaluateColor(Bet{Type: "color", Choice: tt.choice, Stake: 100}, tt.winNum, tt.winCol)
+		got := EvaluateColour(Bet{Type: "colour", Choice: tt.choice, Stake: 100}, tt.winNum, tt.winCol)
 		if got != tt.want {
-			t.Errorf("EvaluateColor(choice=%s, win=%d/%s) = %d, want %d", tt.choice, tt.winNum, tt.winCol, got, tt.want)
+			t.Errorf("EvaluateColour(choice=%s, win=%d/%s) = %d, want %d", tt.choice, tt.winNum, tt.winCol, got, tt.want)
 		}
 	}
 }
@@ -133,7 +133,7 @@ func TestEvaluateColumn(t *testing.T) {
 
 func TestSumStakes(t *testing.T) {
 	bets := []Bet{
-		{Type: "color", Choice: "red", Stake: 150},
+		{Type: "colour", Choice: "red", Stake: 150},
 		{Type: "number", Choice: "17", Stake: 25},
 		{Type: "dozen", Choice: "2nd", Stake: 100},
 	}
@@ -163,10 +163,37 @@ func TestZeroLosesCommonBets(t *testing.T) {
 	if got := EvaluateLowHigh(Bet{Type: "low_high", Choice: "high", Stake: 100}, 0, "green"); got != 0 {
 		t.Errorf("high on 0 should lose")
 	}
-	if got := EvaluateColor(Bet{Type: "color", Choice: "red", Stake: 100}, 0, "green"); got != 0 {
+	if got := EvaluateColour(Bet{Type: "colour", Choice: "red", Stake: 100}, 0, "green"); got != 0 {
 		t.Errorf("red on 0 should lose")
 	}
-	if got := EvaluateColor(Bet{Type: "color", Choice: "black", Stake: 100}, 0, "green"); got != 0 {
+	if got := EvaluateColour(Bet{Type: "colour", Choice: "black", Stake: 100}, 0, "green"); got != 0 {
 		t.Errorf("black on 0 should lose")
+	}
+}
+
+func TestSettleBetsPayouts(t *testing.T) {
+	// Win on 17 (red, in the 2nd dozen)
+	winNum := 17
+	winCol := "red"
+
+	// Stakes in pennies: £5, £3, £2
+	bets := []Bet{
+		{Type: "colour", Choice: "red", Stake: 500}, // even-money: payout = 500 * (1+1) = 1000
+		{Type: "dozen", Choice: "2nd", Stake: 300},  // 2:1      : payout = 300 * (2+1) = 900
+		{Type: "number", Choice: "17", Stake: 200},  // 35:1     : payout = 200 * (35+1) = 7200
+	}
+
+	got := settleBets(bets, winNum, winCol)
+	want := 1000 + 900 + 7200 // = 9100 pennies = £91.00
+
+	if got != want {
+		t.Fatalf("settleBets total payout = %d, want %d", got, want)
+	}
+
+	// Double-check net result against total stake
+	totalStake := sumStakes(bets) // 500 + 300 + 200 = 1000
+	net := got - totalStake       // 9100 - 1000 = 8100 (i.e. £81.00)
+	if net != 8100 {
+		t.Fatalf("net = %d, want %d", net, 8100)
 	}
 }
